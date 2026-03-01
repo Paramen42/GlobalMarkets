@@ -3,99 +3,128 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GlobalMarkets: Pro Edition</title>
+    <title>GlobalMarkets: Neo-Industrial</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@300;500;700&display=swap" rel="stylesheet">
     <style>
-        :root { --bg: #020617; --card: #1e293b; --accent: #3b82f6; --success: #10b981; --gold: #fbbf24; --text: #f8fafc; }
-        body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; margin: 0; padding-bottom: 80px; }
-        
+        :root { --bg: #05070a; --glass: rgba(30, 41, 59, 0.7); --accent: #3b82f6; --neon: #00f2ff; --gold: #fbbf24; --error: #ff4d4d; }
+        * { box-sizing: border-box; transition: all 0.3s ease; }
+        body { background: var(--bg); color: white; font-family: 'Inter', sans-serif; margin: 0; overflow-x: hidden; }
+
+        /* Arkaplan Efekti */
+        .bg-glow { position: fixed; top: -10%; left: -10%; width: 40%; height: 40%; background: radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, transparent 70%); z-index: -1; }
+
+        /* Giriş Ekranı */
+        .auth-container { display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+        .glass-card { background: var(--glass); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; padding: 30px; width: 100%; max-width: 400px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+        h1 { font-family: 'Orbitron', sans-serif; text-align: center; font-size: 1.5rem; letter-spacing: 2px; color: var(--neon); margin-bottom: 25px; }
+
         /* Üst Panel */
-        .header { position: fixed; top: 0; width: 100%; background: #0f172a; padding: 15px; border-bottom: 1px solid #334155; display: flex; justify-content: space-around; z-index: 100; box-sizing: border-box; }
+        .header { position: fixed; top: 0; width: 100%; background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(10px); display: flex; justify-content: space-around; padding: 15px; border-bottom: 1px solid var(--accent); z-index: 1000; }
         .stat { text-align: center; }
-        .stat-val { display: block; font-weight: 800; color: var(--gold); font-size: 1.1rem; }
-        .stat-lab { font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; }
+        .stat-val { display: block; font-family: 'Orbitron', sans-serif; color: var(--gold); font-size: 1rem; }
+        .stat-lab { font-size: 0.6rem; color: #94a3b8; text-transform: uppercase; }
 
-        /* Ana İçerik */
-        .container { padding: 80px 15px 20px; max-width: 600px; margin: auto; }
-        .page { display: none; }
+        /* Sayfalar ve Navigasyon */
+        .content { padding: 90px 15px 100px; max-width: 600px; margin: auto; }
+        .page { display: none; animation: fadeIn 0.5s ease; }
         .page.active { display: block; }
-        .card { background: var(--card); border-radius: 16px; padding: 20px; margin-bottom: 15px; border: 1px solid #334155; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* Navigasyon */
-        .nav { position: fixed; bottom: 0; width: 100%; background: #0f172a; display: flex; justify-content: space-around; padding: 15px 0; border-top: 1px solid #334155; }
-        .nav-btn { background: none; border: none; color: #94a3b8; cursor: pointer; font-weight: 600; font-size: 0.8rem; }
-        .nav-btn.active { color: var(--accent); }
+        .nav-bar { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(15, 23, 42, 0.95); border-radius: 50px; display: flex; padding: 5px; border: 1px solid var(--accent); width: 90%; max-width: 400px; z-index: 1000; }
+        .nav-btn { flex: 1; background: none; border: none; color: #94a3b8; padding: 12px; border-radius: 40px; cursor: pointer; font-weight: 600; font-size: 0.7rem; }
+        .nav-btn.active { background: var(--accent); color: white; box-shadow: 0 0 15px var(--accent); }
 
-        /* Listeler */
-        .list-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #334155; }
-        .rank-num { font-weight: bold; color: var(--accent); margin-right: 10px; }
+        /* Fabrika Sistemi */
+        .factory-card { background: rgba(255,255,255,0.03); border-radius: 15px; padding: 15px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.05); }
+        .progress-bar { width: 100%; height: 6px; background: #0f172a; border-radius: 10px; margin: 10px 0; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--neon); width: 0%; box-shadow: 0 0 10px var(--neon); }
 
-        input, .btn { width: 100%; padding: 14px; margin: 10px 0; border-radius: 10px; border: none; font-weight: bold; box-sizing: border-box; }
-        input { background: #0f172a; color: white; border: 1px solid #334155; }
-        .btn-primary { background: var(--accent); color: white; }
-        .btn-buy { background: var(--success); color: white; width: auto; padding: 8px 15px; }
+        /* Form Elemanları */
+        input { width: 100%; padding: 14px; margin: 8px 0; border-radius: 12px; border: 1px solid #334155; background: #0f172a; color: white; outline: none; }
+        input:focus { border-color: var(--neon); box-shadow: 0 0 10px rgba(0, 242, 255, 0.2); }
+        button.primary { width: 100%; padding: 14px; border-radius: 12px; border: none; background: linear-gradient(45deg, var(--accent), #1d4ed8); color: white; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        button:active { transform: scale(0.98); }
+
+        .hidden { display: none; }
+        .leader-row { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); }
     </style>
 </head>
 <body>
 
-<div id="auth-screen" class="container" style="padding-top: 20px;">
-    <div class="card">
-        <h1 style="text-align:center">GlobalMarkets</h1>
-        <input type="email" id="email" placeholder="E-posta">
-        <input type="password" id="password" placeholder="Şifre">
-        <button class="btn btn-primary" onclick="handleAuth()">Giriş Yap / Kayıt Ol</button>
+<div class="bg-glow"></div>
+
+<div id="auth-screen" class="auth-container">
+    <div class="glass-card">
+        <h1>GLOBAL MARKETS</h1>
+        <div id="auth-form">
+            <input type="text" id="reg-username" placeholder="Kullanıcı Adı (Yeni Kayıt İçin)">
+            <input type="email" id="email" placeholder="E-posta">
+            <input type="password" id="password" placeholder="Şifre">
+            <button class="primary" onclick="handleAuth()">SİSTEME GİRİŞ YAP</button>
+            <p style="font-size: 0.7rem; text-align: center; color: #64748b; margin-top: 15px;">Mevcut hesabınız varsa kullanıcı adı boş kalabilir.</p>
+        </div>
     </div>
 </div>
 
 <div id="main-ui" class="hidden">
     <div class="header">
-        <div class="stat"><span class="stat-lab">Bakiye</span><span id="balance" class="stat-val">0</span></div>
-        <div class="stat"><span class="stat-lab">Seviye</span><span id="level" class="stat-val" style="color:var(--accent)">1</span></div>
-        <div class="stat"><span class="stat-lab">XP</span><span id="xp" class="stat-val" style="color:var(--success)">0</span></div>
+        <div class="stat"><span class="stat-lab">BAKİYE</span><span id="balance" class="stat-val">0</span></div>
+        <div class="stat"><span class="stat-lab">DÜZEY</span><span id="level" class="stat-val" style="color:var(--neon)">1</span></div>
+        <div class="stat"><span class="stat-lab">DENEYİM</span><span id="xp" class="stat-val" style="color:var(--gold)">0</span></div>
     </div>
 
-    <div class="container">
+    <div class="content">
         <div id="page-market" class="page active">
-            <div class="card">
-                <h3>🛒 Online Pazar</h3>
+            <div class="glass-card" style="max-width: none;">
+                <h3>🏪 Global Ticaret</h3>
                 <div id="market-list"></div>
-                <h4 style="margin-top:20px">İlan Ver</h4>
-                <input id="m-name" placeholder="Eşya adı">
-                <input type="number" id="m-price" placeholder="Fiyat">
-                <button class="btn btn-primary" onclick="listItem()">Pazara Ekle</button>
+                <hr style="opacity: 0.1; margin: 20px 0;">
+                <h4>Yeni İlan Oluştur</h4>
+                <input id="m-name" placeholder="Ürün adı">
+                <input type="number" id="m-price" placeholder="Fiyat ($)">
+                <button class="primary" onclick="listItem()">İLAN VER</button>
             </div>
         </div>
 
         <div id="page-factory" class="page">
-            <div class="card">
-                <h3>🏗️ Sanayi Bölgesi</h3>
-                <div class="list-item">
-                    <div><b>Küçük Çiftlik</b><br><small>10$/dk | 1.000$</small></div>
-                    <button class="btn-buy" onclick="buyAsset(1000, 10)">İnşa Et</button>
+            <div class="factory-card">
+                <div style="display:flex; justify-content:space-between;">
+                    <b>🌲 Küçük Çiftlik</b>
+                    <span id="f1-count" style="color:var(--neon)">0 Adet</span>
                 </div>
-                <div class="list-item">
-                    <div><b>Demir Madeni</b><br><small>60$/dk | 5.000$</small></div>
-                    <button class="btn-buy" onclick="buyAsset(5000, 60)">İnşa Et</button>
+                <div class="progress-bar"><div id="f1-progress" class="progress-fill"></div></div>
+                <div style="display:flex; gap: 10px;">
+                    <button class="primary" style="flex:2; font-size:0.7rem;" onclick="startProduction(1, 10, 6000)">ÜRETİMİ BAŞLAT (10$)</button>
+                    <button class="primary" style="flex:1; font-size:0.7rem; background:var(--gold); color:black;" onclick="buyFacility(1, 1000)">AL (1K$)</button>
                 </div>
-                <div class="list-item">
-                    <div><b>Teknoloji Üssü</b><br><small>300$/dk | 25.000$</small></div>
-                    <button class="btn-buy" onclick="buyAsset(25000, 300)">İnşa Et</button>
+            </div>
+
+            <div class="factory-card">
+                <div style="display:flex; justify-content:space-between;">
+                    <b>⚙️ Teknoloji Fabrikası</b>
+                    <span id="f2-count" style="color:var(--neon)">0 Adet</span>
+                </div>
+                <div class="progress-bar"><div id="f2-progress" class="progress-fill"></div></div>
+                <div style="display:flex; gap: 10px;">
+                    <button class="primary" style="flex:2; font-size:0.7rem;" onclick="startProduction(2, 50, 15000)">ÜRETİMİ BAŞLAT (50$)</button>
+                    <button class="primary" style="flex:1; font-size:0.7rem; background:var(--gold); color:black;" onclick="buyFacility(2, 5000)">AL (5K$)</button>
                 </div>
             </div>
         </div>
 
         <div id="page-leaderboard" class="page">
-            <div class="card">
-                <h3>🏆 En Zenginler</h3>
+            <div class="glass-card" style="max-width: none;">
+                <h3>🏆 Dünya Sıralaması</h3>
                 <div id="leader-list"></div>
             </div>
         </div>
     </div>
 
-    <nav class="nav">
+    <nav class="nav-bar">
         <button class="nav-btn active" onclick="showPage('market', this)">PAZAR</button>
-        <button class="nav-btn" onclick="showPage('factory', this)">FABRİKA</button>
-        <button class="nav-btn" onclick="showPage('leaderboard', this)">LİDERLİK</button>
+        <button class="nav-btn" onclick="showPage('factory', this)">ÜRETİM</button>
+        <button class="nav-btn" onclick="showPage('leaderboard', this)">LİDERLER</button>
     </nav>
 </div>
 
@@ -105,15 +134,21 @@
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     let user = null;
+    let myProfile = null;
 
     async function handleAuth() {
         const e = document.getElementById('email').value;
         const p = document.getElementById('password').value;
+        const u = document.getElementById('reg-username').value;
+
         let { data, error } = await sb.auth.signInWithPassword({email:e, password:p});
+        
         if(error) {
+            if(!u) return alert("Kayıt olmak için kullanıcı adı girin!");
             let { data: d2, error: e2 } = await sb.auth.signUp({email:e, password:p});
-            if(e2) return alert(e2.message);
+            if(e2) return alert("Hata: " + e2.message);
             data = d2;
+            await sb.from('profiles').insert([{id: data.user.id, username: u}]);
         }
         user = data.user;
         start();
@@ -128,48 +163,70 @@
     }
 
     async function start() {
-        document.getElementById('auth-screen').style.display = 'none';
+        document.getElementById('auth-screen').classList.add('hidden');
         document.getElementById('main-ui').classList.remove('hidden');
         await sync();
-        setInterval(sync, 10000); 
+        setInterval(sync, 15000); 
         loadMarket();
     }
 
     async function sync() {
         let { data } = await sb.from('profiles').select('*').eq('id', user.id).single();
-        if(!data) {
-            await sb.from('profiles').insert([{id: user.id, username: user.email.split('@')[0]}]);
-            return sync();
-        }
+        myProfile = data;
         document.getElementById('balance').innerText = data.money.toLocaleString() + "$";
         document.getElementById('level').innerText = data.level;
         document.getElementById('xp').innerText = data.xp;
     }
 
-    async function buyAsset(cost, income) {
-        let { data } = await sb.from('profiles').select('money').eq('id', user.id).single();
-        if(data.money < cost) return alert("Para yetersiz!");
-        await sb.from('profiles').update({ money: data.money - cost, xp: data.xp + 50 }).eq('id', user.id);
-        alert("Satın alındı! Geliriniz arttı.");
+    async function buyFacility(id, cost) {
+        if(myProfile.money < cost) return alert("Bakiye yetersiz!");
+        await sb.from('profiles').update({ money: myProfile.money - cost, xp: myProfile.xp + 100 }).eq('id', user.id);
+        alert("Satın alma başarılı!");
         sync();
     }
 
+    function startProduction(id, cost, duration) {
+        if(myProfile.money < cost) return alert("Üretim maliyeti yetersiz!");
+        
+        const btn = event.target;
+        btn.disabled = true;
+        const bar = document.getElementById(`f${id}-progress`);
+        let start = null;
+
+        async function frame(timestamp) {
+            if (!start) start = timestamp;
+            let progress = (timestamp - start) / duration;
+            bar.style.width = Math.min(progress * 100, 100) + "%";
+            
+            if (progress < 1) {
+                requestAnimationFrame(frame);
+            } else {
+                bar.style.width = "0%";
+                btn.disabled = false;
+                const gain = cost * 3;
+                await sb.from('profiles').update({ money: myProfile.money + gain, xp: myProfile.xp + 20 }).eq('id', user.id);
+                sync();
+            }
+        }
+        requestAnimationFrame(frame);
+    }
+
     async function loadMarket() {
-        let { data } = await sb.from('global_market').select('*').limit(10).order('created_at', {ascending:false});
+        let { data } = await sb.from('global_market').select('*').order('created_at', {ascending:false}).limit(5);
         document.getElementById('market-list').innerHTML = data.map(i => `
-            <div class="list-item">
-                <span>${i.item_name} <br><small>${i.price}$</small></span>
-                <button class="btn-buy" onclick="alert('İşlem başarılı!')">Al</button>
+            <div class="leader-row">
+                <span><b>${i.item_name}</b><br><small>${i.seller_name.split('@')[0]}</small></span>
+                <button class="primary" style="width:auto; padding:5px 15px;" onclick="alert('İşlem Başarılı!')">${i.price}$ Al</button>
             </div>
-        `).join('') || "Pazar şu an boş.";
+        `).join('') || "Pazar boş.";
     }
 
     async function loadLeaders() {
         let { data } = await sb.from('profiles').select('username, money').order('money', {ascending:false}).limit(5);
         document.getElementById('leader-list').innerHTML = data.map((u, i) => `
-            <div class="list-item">
-                <span><span class="rank-num">#${i+1}</span> ${u.username}</span>
-                <span style="color:var(--gold)">${u.money}$</span>
+            <div class="leader-row">
+                <span>#${i+1} ${u.username}</span>
+                <span style="color:var(--gold)">${u.money.toLocaleString()}$</span>
             </div>
         `).join('');
     }
