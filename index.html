@@ -3,72 +3,182 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GlobalMarkets - Ticaret Oyunu</title>
+    <title>GlobalMarkets PRO</title>
     <style>
-        body { background: #121212; color: #e0e0e0; font-family: sans-serif; text-align: center; padding: 20px; }
-        .stat-card { background: #1e1e1e; padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #333; }
-        .market-item { background: #252525; padding: 15px; border-radius: 10px; margin: 10px 0; display: flex; justify-content: space-between; align-items: center; }
-        button { background: #4CAF50; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; }
-        button.sell { background: #f44336; margin-left: 5px; }
-        h1 { color: #4CAF50; }
+        :root { --bg: #0f172a; --card: #1e293b; --accent: #3b82f6; --text: #f8fafc; }
+        body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; padding: 10px; }
+        .header { background: var(--card); padding: 15px; border-radius: 15px; margin-bottom: 10px; border: 1px solid #334155; position: sticky; top: 0; z-index: 100; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .card { background: var(--card); padding: 12px; border-radius: 12px; border: 1px solid #334155; margin-bottom: 10px; }
+        .btn { background: var(--accent); color: white; border: none; padding: 8px; border-radius: 6px; width: 100%; font-weight: bold; margin-top: 5px; }
+        .btn-sell { background: #ef4444; }
+        .locked { opacity: 0.5; filter: grayscale(1); pointer-events: none; }
+        .tab-menu { display: flex; gap: 5px; margin-bottom: 10px; }
+        .tab { flex: 1; padding: 10px; background: #334155; text-align: center; border-radius: 8px; font-size: 14px; }
+        .active-tab { background: var(--accent); }
     </style>
 </head>
 <body>
 
-    <h1>GlobalMarkets</h1>
-    
-    <div class="stat-card">
-        <p>Cüzdan: <span id="money">100</span> $</p>
-        <p>Demir Stoku: <span id="iron-count">0</span></p>
-    </div>
+<div id="auth-screen" class="card">
+    <h2>GlobalMarkets Giriş</h2>
+    <input type="text" id="username-input" placeholder="Kullanıcı Adı" style="width:90%; padding:10px; margin-bottom:10px;">
+    <button class="btn" onclick="login()">Oyuna Başla</button>
+</div>
 
-    <div class="market-item">
-        <span><b>Demir (Market)</b><br>Fiyat: <span id="iron-price">10</span> $</span>
-        <div>
-            <button onclick="buyIron()">Satın Al</button>
-            <button class="sell" onclick="sellIron()">Sat</button>
+<div id="game-screen" style="display:none;">
+    <div class="header">
+        <div style="display:flex; justify-content:space-between;">
+            <span>👤 <b id="user-name">...</b></span>
+            <span>💰 <b id="money">100</b> $</span>
+        </div>
+        <div style="font-size: 12px; margin-top: 5px; color: #94a3b8;">
+            Seviye: <span id="level">1</span> | XP: <span id="xp">0</span>
         </div>
     </div>
 
-    <script>
-        // Oyun Verileri
-        let money = localStorage.getItem('money') ? parseInt(localStorage.getItem('money')) : 100;
-        let iron = localStorage.getItem('iron') ? parseInt(localStorage.getItem('iron')) : 0;
-        let ironPrice = 10;
+    <div class="tab-menu">
+        <div class="tab active-tab" onclick="showTab('market')">Market</div>
+        <div class="tab" onclick="showTab('prod')">Üretim</div>
+    </div>
 
-        // Ekranı Güncelle
-        function updateUI() {
-            document.getElementById('money').innerText = money;
-            document.getElementById('iron-count').innerText = iron;
-            document.getElementById('iron-price').innerText = ironPrice;
-            // Kaydet
-            localStorage.setItem('money', money);
-            localStorage.setItem('iron', iron);
+    <div id="market-tab">
+        <div class="grid" id="market-list"></div>
+    </div>
+
+    <div id="prod-tab" style="display:none;">
+        <div id="production-list"></div>
+    </div>
+</div>
+
+<script>
+    let state = {
+        user: "", money: 100, xp: 0, level: 1,
+        inv: { buğday: 0, demir: 0, petrol: 0 },
+        prices: { buğday: 5, demir: 20, petrol: 100 },
+        assets: { ciftlik: 0, maden: 0, rafineri: 0 }
+    };
+
+    const items = [
+        { id: 'buğday', name: 'Buğday', base: 5, minLevel: 1 },
+        { id: 'demir', name: 'Demir', base: 20, minLevel: 2 },
+        { id: 'petrol', name: 'Petrol', base: 100, minLevel: 5 }
+    ];
+
+    const buildings = [
+        { id: 'ciftlik', name: 'Çiftlik', cost: 200, produces: 'buğday', rate: 1, xp: 10 },
+        { id: 'maden', name: 'Maden', cost: 1000, produces: 'demir', rate: 0.5, xp: 50 }
+    ];
+
+    function login() {
+        const name = document.getElementById('username-input').value;
+        if(name.length < 3) return alert("İsim çok kısa!");
+        state.user = name;
+        document.getElementById('auth-screen').style.display = 'none';
+        document.getElementById('game-screen').style.display = 'block';
+        document.getElementById('user-name').innerText = name;
+        loadGame();
+        render();
+        startAutoProduction();
+    }
+
+    function render() {
+        document.getElementById('money').innerText = Math.floor(state.money);
+        document.getElementById('level').innerText = state.level;
+        document.getElementById('xp').innerText = state.xp;
+
+        // Market Render
+        let marketHTML = '';
+        items.forEach(item => {
+            const isLocked = state.level < item.minLevel;
+            marketHTML += `
+                <div class="card ${isLocked ? 'locked' : ''}">
+                    <b>${item.name}</b><br>
+                    Fiyat: ${state.prices[item.id]}$ <br>
+                    Stok: ${state.inv[item.id]}
+                    <button class="btn" onclick="buy('${item.id}')">Al</button>
+                    <button class="btn btn-sell" onclick="sell('${item.id}')">Sat</button>
+                </div>`;
+        });
+        document.getElementById('market-list').innerHTML = marketHTML;
+
+        // Üretim Render
+        let prodHTML = '';
+        buildings.forEach(b => {
+            prodHTML += `
+                <div class="card">
+                    <b>${b.name}</b> (${state.assets[b.id]} Adet)<br>
+                    Maliyet: ${b.cost}$ | Üretim: ${b.rate}/sn
+                    <button class="btn" onclick="buyBuilding('${b.id}')">İnşa Et</button>
+                </div>`;
+        });
+        document.getElementById('production-list').innerHTML = prodHTML;
+    }
+
+    function buy(id) {
+        if(state.money >= state.prices[id]) {
+            state.money -= state.prices[id];
+            state.inv[id]++;
+            saveGame(); render();
         }
+    }
 
-        function buyIron() {
-            if (money >= ironPrice) {
-                money -= ironPrice;
-                iron++;
-                updateUI();
-            } else { alert("Yeterli paran yok!"); }
+    function sell(id) {
+        if(state.inv[id] > 0) {
+            state.money += state.prices[id];
+            state.inv[id]--;
+            state.xp += 2;
+            checkLevel();
+            saveGame(); render();
         }
+    }
 
-        function sellIron() {
-            if (iron > 0) {
-                money += ironPrice;
-                iron--;
-                updateUI();
-            } else { alert("Satacak demirin yok!"); }
+    function buyBuilding(id) {
+        const b = buildings.find(x => x.id === id);
+        if(state.money >= b.cost) {
+            state.money -= b.cost;
+            state.assets[id]++;
+            saveGame(); render();
         }
+    }
 
-        // Fiyatı her 5 saniyede bir değiştir (Online hissi için)
+    function checkLevel() {
+        if(state.xp >= state.level * 100) {
+            state.level++;
+            alert("TEBRİKLER! Seviye atladın: " + state.level);
+        }
+    }
+
+    function startAutoProduction() {
         setInterval(() => {
-            ironPrice = Math.floor(Math.random() * (15 - 5 + 1)) + 5;
-            updateUI();
-        }, 5000);
+            buildings.forEach(b => {
+                if(state.assets[b.id] > 0) {
+                    state.inv[b.produces] += (b.rate * state.assets[b.id]) / 10;
+                }
+            });
+            // Fiyat dalgalanması
+            if(Math.random() > 0.8) {
+                Object.keys(state.prices).forEach(p => {
+                    let change = (Math.random() * 2 - 1);
+                    state.prices[p] = Math.max(1, Math.floor(state.prices[p] + change));
+                });
+            }
+            render();
+        }, 1000);
+    }
 
-        updateUI();
-    </script>
+    function showTab(t) {
+        document.getElementById('market-tab').style.display = t === 'market' ? 'block' : 'none';
+        document.getElementById('prod-tab').style.display = t === 'prod' ? 'block' : 'none';
+        document.querySelectorAll('.tab').forEach(el => el.classList.remove('active-tab'));
+        event.target.classList.add('active-tab');
+    }
+
+    function saveGame() { localStorage.setItem('gm_save_'+state.user, JSON.stringify(state)); }
+    function loadGame() {
+        let saved = localStorage.getItem('gm_save_'+state.user);
+        if(saved) state = JSON.parse(saved);
+    }
+</script>
 </body>
 </html>
