@@ -3,19 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Industrial Empire: Mega Factory</title>
+    <title>Industrial Empire: Mega Factory Fix</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@300;500;700&display=swap" rel="stylesheet">
     <style>
         :root { --bg: #0a0c10; --card: #161b22; --accent: #238636; --neon: #58a6ff; --gold: #f1e05a; --lock: #484f58; }
         * { box-sizing: border-box; transition: 0.2s; }
-        body { background: var(--bg); color: #c9d1d9; font-family: 'Inter', sans-serif; margin: 0; padding-bottom: 80px; }
+        body { background: var(--bg); color: #c9d1d9; font-family: 'Inter', sans-serif; margin: 0; padding-bottom: 80px; overflow-x: hidden; }
         .header { position: fixed; top: 0; width: 100%; background: #010409; padding: 10px 20px; border-bottom: 1px solid #30363d; z-index: 1000; display: flex; justify-content: space-between; align-items: center; }
         .stats { display: flex; gap: 12px; font-family: 'Orbitron'; font-size: 0.75rem; }
-        .container { padding: 75px 15px 20px; max-width: 650px; margin: auto; }
+        .container { padding: 75px 15px 20px; max-width: 650px; margin: auto; min-height: 100vh; }
         .page { display: none; } .page.active { display: block; }
         .card { background: var(--card); border: 1px solid #30363d; border-radius: 12px; padding: 15px; margin-bottom: 15px; }
-        .unit { background: #0d1117; padding: 12px; border-radius: 8px; border-left: 4px solid var(--lock); margin-bottom: 10px; cursor: pointer; }
+        .unit { background: #0d1117; padding: 12px; border-radius: 8px; border-left: 4px solid var(--lock); margin-bottom: 10px; cursor: pointer; position: relative; }
         .unit.unlocked { border-left-color: var(--accent); }
         .unit-detail { font-size: 0.7rem; color: #8b949e; display: none; margin-top: 10px; padding-top: 10px; border-top: 1px dashed #30363d; }
         .unit.show-detail .unit-detail { display: block; }
@@ -27,14 +27,25 @@
         .nav { position: fixed; bottom: 0; width: 100%; background: #010409; display: flex; border-top: 1px solid #30363d; z-index: 1000; }
         .nav-btn { flex: 1; padding: 15px; background: none; border: none; color: #8b949e; cursor: pointer; font-size: 0.6rem; font-weight: bold; }
         .nav-btn.active { color: var(--neon); border-top: 2px solid var(--neon); }
-        .locked-overlay { color: var(--lock); font-size: 0.65rem; font-weight: bold; }
+        .auth-screen { height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--bg); position: fixed; width: 100%; z-index: 2000; }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
-<div id="game-ui">
+<div id="auth-screen" class="auth-screen">
+    <div class="card" style="width:320px; text-align:center;">
+        <h2 style="font-family:'Orbitron'">EMPIRE OS</h2>
+        <input type="text" id="reg-u" style="width:100%; padding:10px; margin-bottom:10px;" placeholder="Kullanıcı Adı">
+        <input type="email" id="reg-e" style="width:100%; padding:10px; margin-bottom:10px;" placeholder="E-posta">
+        <input type="password" id="reg-p" style="width:100%; padding:10px; margin-bottom:10px;" placeholder="Şifre">
+        <button class="btn btn-work" onclick="handleAuth()">GİRİŞ YAP / KAYIT OL</button>
+    </div>
+</div>
+
+<div id="game-ui" class="hidden">
     <div class="header">
-        <div id="display-name" style="font-family:'Orbitron'; color:var(--neon); font-size:0.8rem">...</div>
+        <div id="display-name" style="font-family:'Orbitron'; color:var(--neon); font-size:0.8rem">Yükleniyor...</div>
         <div class="stats">
             <div style="color:var(--gold)">💰 <span id="stat-money">0</span></div>
             <div style="color:var(--neon)">⭐ <span id="stat-xp">0</span></div>
@@ -55,11 +66,11 @@
 
         <div id="p-inv" class="page">
             <div class="card"><h3>📦 MERKEZ DEPO</h3><div id="inventory-list"></div></div>
-            <div class="card"><h3>⚖️ TİCARET</h3><select id="sell-select"></select><button class="btn btn-work" onclick="sellItem()">SATIŞ YAP</button></div>
+            <div class="card"><h3>⚖️ TİCARET</h3><select id="sell-select" style="width:100%; padding:10px; margin-bottom:10px;"></select><button class="btn btn-work" onclick="sellItem()">SATIŞ YAP</button></div>
         </div>
 
         <div id="p-log" class="page">
-            <div class="card"><h3>🚚 LOJİSTİK</h3><button class="btn btn-buy" onclick="upgradeLogistics()">Kapasite Artır</button></div>
+            <div class="card"><h3>🚚 LOJİSTİK</h3><p id="log-info">Depo Seviyesi: 1</p><button class="btn btn-buy" onclick="upgradeLogistics()">Kapasite Artır</button></div>
         </div>
     </div>
 
@@ -81,53 +92,55 @@
             { id: "m2", name: "Demir Ocağı", cost: 1000, lvl: 2, prod: "Demir Cevheri", time: 7200, price: 200, xp: 25 },
             { id: "m3", name: "Bakır Madeni", cost: 5000, lvl: 5, prod: "Bakır", time: 10800, price: 450, xp: 40 },
             { id: "m4", name: "Kömür İşletmesi", cost: 15000, lvl: 8, prod: "Kömür", time: 14400, price: 800, xp: 60 },
-            { id: "m5", name: "Petrol Kuyusu", cost: 50000, lvl: 12, prod: "Ham Petrol", time: 18000, price: 1500, xp: 100 },
-            { id: "m6", name: "Altın Madeni", cost: 150000, lvl: 20, prod: "Altın", time: 21600, price: 4000, xp: 250 },
-            { id: "m7", name: "Kuvars Ocağı", cost: 300000, lvl: 25, prod: "Silisyum", time: 25200, price: 6500, xp: 400 },
-            { id: "m8", name: "Uranyum Sahası", cost: 1000000, lvl: 35, prod: "Uranyum", time: 32400, price: 15000, xp: 1000 }
+            { id: "m5", name: "Petrol Kuyusu", cost: 50000, lvl: 12, prod: "Ham Petrol", time: 18000, price: 1500, xp: 100 }
         ],
         factory: [
             { id: "f1", name: "Un Değirmeni", cost: 2000, lvl: 3, req: {"Buğday": 5}, prod: "Paket Un", time: 14400, price: 600 },
             { id: "f2", name: "Çelik Fabrikası", cost: 15000, lvl: 10, req: {"Demir Cevheri": 4, "Kömür": 2}, prod: "Çelik Kiriş", time: 21600, price: 4500 },
-            { id: "f3", name: "Kablo Atölyesi", cost: 40000, lvl: 15, req: {"Bakır": 6}, prod: "Bakır Kablo", time: 18000, price: 3200 },
-            { id: "f4", name: "Plastik Tesisi", cost: 100000, lvl: 18, req: {"Ham Petrol": 3}, prod: "Endüstriyel Plastik", time: 25200, price: 8000 },
-            { id: "f5", name: "Motor Fabrikası", cost: 500000, lvl: 25, req: {"Çelik Kiriş": 2, "Bakır Kablo": 4}, prod: "Elektrikli Motor", time: 36000, price: 25000 },
-            { id: "f6", name: "Teknoloji Üssü", cost: 2000000, lvl: 30, req: {"Silisyum": 10, "Altın": 2}, prod: "Mikroçip", time: 43200, price: 75000 },
-            { id: "f7", name: "Silah Sanayii", cost: 10000000, lvl: 45, req: {"Uranyum": 5, "Çelik Kiriş": 10}, prod: "Nükleer Yakıt", time: 86400, price: 500000 }
+            { id: "f3", name: "Kablo Atölyesi", cost: 40000, lvl: 15, req: {"Bakır": 6}, prod: "Bakır Kablo", time: 18000, price: 3200 }
         ]
     };
 
-    async function init() {
-        const { data } = await sb.auth.getUser();
-        if(!data.user) return; me = data.user;
-        renderTesis();
+    async function handleAuth() {
+        const e = document.getElementById('reg-e').value, p = document.getElementById('reg-p').value, u = document.getElementById('reg-u').value;
+        if(!e || !p) return alert("E-posta ve Şifre girin!");
+        
+        let { data, error } = await sb.auth.signInWithPassword({email:e, password:p});
+        if(error) {
+            let { data: d2, error: e2 } = await sb.auth.signUp({email:e, password:p, options:{data:{username:u}}});
+            if(e2) return alert("Hata: " + e2.message);
+            data = d2;
+        }
+        me = data.user;
+        document.getElementById('auth-screen').classList.add('hidden');
+        document.getElementById('game-ui').classList.remove('hidden');
         sync();
-        setInterval(sync, 10000);
     }
 
     async function sync() {
-        let { data } = await sb.from('profiles').select('*').eq('id', me.id).single();
+        if(!me) return;
+        let { data, error } = await sb.from('profiles').select('*').eq('id', me.id).single();
+        if(error) return console.error(error);
+        
         myProfile = data;
         if(!myProfile.unlocked_units) myProfile.unlocked_units = ["m1"];
         
-        document.getElementById('display-name').innerText = myProfile.username;
-        document.getElementById('stat-money').innerText = myProfile.money.toLocaleString();
-        document.getElementById('stat-xp').innerText = Math.floor(myProfile.xp / 100); // Seviye hesabı
+        document.getElementById('display-name').innerText = myProfile.username || "Anonim";
+        document.getElementById('stat-money').innerText = (myProfile.money || 0).toLocaleString();
+        document.getElementById('stat-xp').innerText = Math.floor((myProfile.xp || 0) / 100);
+        document.getElementById('log-info').innerText = `Depo Seviyesi: ${myProfile.logistics_level || 1}`;
         
         let stock = Object.values(myProfile.inventory || {}).reduce((a, b) => a + b, 0);
-        document.getElementById('stat-storage').innerText = `${stock}/${myProfile.logistics_level * 50}`;
+        document.getElementById('stat-storage').innerText = `${stock}/${(myProfile.logistics_level || 1) * 50}`;
         
         renderTesis();
         updateInv();
     }
 
     function renderTesis() {
-        const mDiv = document.getElementById('mining-list');
-        const fDiv = document.getElementById('factory-list');
-        const level = Math.floor(myProfile.xp / 100);
-
-        mDiv.innerHTML = dataModel.mining.map(u => createUnitHTML(u, level)).join('');
-        fDiv.innerHTML = dataModel.factory.map(u => createUnitHTML(u, level)).join('');
+        const level = Math.floor((myProfile.xp || 0) / 100);
+        document.getElementById('mining-list').innerHTML = dataModel.mining.map(u => createUnitHTML(u, level)).join('');
+        document.getElementById('factory-list').innerHTML = dataModel.factory.map(u => createUnitHTML(u, level)).join('');
     }
 
     function createUnitHTML(u, userLvl) {
@@ -138,29 +151,24 @@
             <div class="card unit ${isUnlocked ? 'unlocked' : ''}" onclick="this.classList.toggle('show-detail')">
                 <div style="display:flex; justify-content:space-between">
                     <b>${u.name}</b>
-                    ${isUnlocked ? '<span style="color:var(--accent)">AKTİF</span>' : `<span class="locked-overlay">Lvl ${u.lvl} | $${u.cost}</span>`}
+                    ${isUnlocked ? '<span style="color:var(--accent)">AKTİF</span>' : `<span style="color:var(--gold)">Lvl ${u.lvl} | $${u.cost}</span>`}
                 </div>
                 <div class="progress-bar"><div id="bar-${u.id}" class="progress-fill"></div></div>
-                
                 <div class="unit-detail">
-                    <p>📦 Ürün: ${u.prod}</p>
-                    <p>⏱️ Süre: ${(u.time/3600).toFixed(1)} Saat</p>
-                    <p>💰 Saatlik Verim: ${(u.price / (u.time/3600)).toFixed(2)}$/saat</p>
-                    <p>📉 Maliyet: $${(u.cost / 100).toFixed(0)} / işlem</p>
-                    <div id="timer-${u.id}" style="color:var(--neon); font-weight:bold">Hazır</div>
+                    <p>📦 Ürün: ${u.prod} | ⏱️ ${(u.time/3600).toFixed(1)} Sa</p>
+                    <div id="timer-${u.id}">Hazır</div>
                 </div>
-
                 ${!isUnlocked ? 
-                    `<button class="btn btn-buy" onclick="buyUnit('${u.id}', ${u.cost}, ${u.lvl}, event)" ${!canBuy ? 'disabled' : ''}>TESİSİ KUR</button>` : 
+                    `<button class="btn btn-buy" onclick="buyUnit('${u.id}', ${u.cost}, event)" ${!canBuy ? 'disabled' : ''}>SATIN AL</button>` : 
                     `<button id="btn-${u.id}" class="btn btn-work" onclick="startProduction('${u.id}', event)">ÜRETİMİ BAŞLAT</button>`
                 }
             </div>
         `;
     }
 
-    async function buyUnit(id, cost, lvl, e) {
+    async function buyUnit(id, cost, e) {
         e.stopPropagation();
-        if(myProfile.money < cost) return;
+        if(myProfile.money < cost) return alert("Para yetersiz!");
         let units = [...myProfile.unlocked_units, id];
         await sb.from('profiles').update({ money: myProfile.money - cost, unlocked_units: units }).eq('id', me.id);
         sync();
@@ -169,56 +177,53 @@
     async function startProduction(id, e) {
         e.stopPropagation();
         const u = [...dataModel.mining, ...dataModel.factory].find(x => x.id === id);
-        
-        // Kaynak kontrolü (Fabrikalar için)
-        if(u.req) {
-            for(let r in u.req) if((myProfile.inventory[r] || 0) < u.req[r]) return alert(`${r} eksik!`);
-            let inv = {...myProfile.inventory};
-            for(let r in u.req) inv[r] -= u.req[r];
-            await sb.from('profiles').update({ inventory: inv }).eq('id', me.id);
-        }
-
         const btn = document.getElementById('btn-'+id);
         const bar = document.getElementById('bar-'+id);
-        const timerTxt = document.getElementById('timer-'+id);
+        
         btn.disabled = true;
-
         let start = Date.now();
         let interval = setInterval(() => {
-            let remain = u.time - Math.floor((Date.now() - start)/1000);
-            bar.style.width = ((u.time - remain) / u.time * 100) + "%";
-            timerTxt.innerText = `Kalan: ${Math.floor(remain/3600)}sa ${Math.floor((remain%3600)/60)}dk`;
-
-            if(remain <= 0) {
+            let elapsed = Date.now() - start;
+            let progress = (elapsed / (u.time * 1000)) * 100;
+            bar.style.width = Math.min(progress, 100) + "%";
+            if(progress >= 100) {
                 clearInterval(interval);
                 finishProduction(u);
                 bar.style.width = "0%";
                 btn.disabled = false;
-                timerTxt.innerText = "Hazır";
             }
-        }, 1000);
+        }, 100);
     }
 
     async function finishProduction(u) {
         let inv = {...myProfile.inventory};
         inv[u.prod] = (inv[u.prod] || 0) + 1;
-        await sb.from('profiles').update({ inventory: inv, xp: myProfile.xp + (u.xp || 50) }).eq('id', me.id);
+        await sb.from('profiles').update({ inventory: inv, xp: (myProfile.xp || 0) + (u.xp || 20) }).eq('id', me.id);
         sync();
     }
 
     function updateInv() {
-        const sel = document.getElementById('sell-select');
         const list = document.getElementById('inventory-list');
+        const sel = document.getElementById('sell-select');
         let h = "", o = "";
-        for(let item in myProfile.inventory) {
-            let q = myProfile.inventory[item];
-            if(q > 0) {
-                h += `<div style="display:flex; justify-content:space-between; padding:5px 0"><span>${item}</span><b>x${q}</b></div>`;
-                o += `<option value="${item}">${item}</option>`;
+        for(let i in myProfile.inventory) {
+            if(myProfile.inventory[i] > 0) {
+                h += `<div>${i} x${myProfile.inventory[i]}</div>`;
+                o += `<option value="${i}">${i}</option>`;
             }
         }
         list.innerHTML = h || "Boş";
         sel.innerHTML = o;
+    }
+
+    async function sellItem() {
+        const item = document.getElementById('sell-select').value;
+        if(!item) return;
+        let price = 500; // Örnek satış fiyatı
+        let inv = {...myProfile.inventory};
+        inv[item] -= 1;
+        await sb.from('profiles').update({ inventory: inv, money: myProfile.money + price }).eq('id', me.id);
+        sync();
     }
 
     function tab(id, b) {
@@ -228,12 +233,16 @@
         b.classList.add('active');
     }
 
-    init();
+    // Sayfa açıldığında otomatik senkronizasyon kontrolü
+    sb.auth.onAuthStateChange((event, session) => {
+        if (session) {
+            me = session.user;
+            document.getElementById('auth-screen').classList.add('hidden');
+            document.getElementById('game-ui').classList.remove('hidden');
+            sync();
+        }
+    });
 </script>
 </body>
-</html>
-
-                                                  </html>
+    </html>
     
-
-
