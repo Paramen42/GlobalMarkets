@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GlobalMarkets - Ticaret Oyunu</title>
+    <style>
+        body { background: #121212; color: #e0e0e0; font-family: sans-serif; text-align: center; padding: 20px; }
+        .stat-card { background: #1e1e1e; padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #333; }
+        .market-item { background: #252525; padding: 15px; border-radius: 10px; margin: 10px 0; display: flex; justify-content: space-between; align-items: center; }
+        button { background: #4CAF50; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; }
+        button.sell { background: #f44336; margin-left: 5px; }
+        h1 { color: #4CAF50; }
+    </style>
+</head>
+<body>
+
+    <h1>GlobalMarkets</h1>
+    
+    <div class="stat-card">
+        <p>Cüzdan: <span id="money">100</span> $</p>
+        <p>Demir Stoku: <span id="iron-count">0</span></p>
+    </div>
+
+    <div class="market-item">
+        <span><b>Demir (Market)</b><br>Fiyat: <span id="iron-price">10</span> $</span>
+        <div>
+            <button onclick="buyIron()">Satın Al</button>
+            <button class="sell" onclick="sellIron()">Sat</button>
+        </div>
+    </div>
+
+    <script>
+        // Oyun Verileri
+        let money = localStorage.getItem('money') ? parseInt(localStorage.getItem('money')) : 100;
+        let iron = localStorage.getItem('iron') ? parseInt(localStorage.getItem('iron')) : 0;
+        let ironPrice = 10;
+
+        // Ekranı Güncelle
+        function updateUI() {
+            document.getElementById('money').innerText = money;
+            document.getElementById('iron-count').innerText = iron;
+            document.getElementById('iron-price').innerText = ironPrice;
+            // Kaydet
+            localStorage.setItem('money', money);
+            localStorage.setItem('iron', iron);
+        }
+
+        function buyIron() {
+            if (money >= ironPrice) {
+                money -= ironPrice;
+                iron++;
+                updateUI();
+            } else { alert("Yeterli paran yok!"); }
+        }
+
+        function sellIron() {
+            if (iron > 0) {
+                money += ironPrice;
+                iron--;
+                updateUI();
+            } else { alert("Satacak demirin yok!"); }
+        }
+
+        // Fiyatı her 5 saniyede bir değiştir (Online hissi için)
+        setInterval(() => {
+            ironPrice = Math.floor(Math.random() * (15 - 5 + 1)) + 5;
+            updateUI();
+        }, 5000);
+
+        updateUI();
+    </script>
+</body>
+</html>
