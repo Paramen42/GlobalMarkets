@@ -3,41 +3,95 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GlobalMarkets Online</title>
+    <title>GlobalMarkets: Industrial Era</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { background: #0f172a; color: white; font-family: sans-serif; margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-        .container { background: #1e293b; padding: 20px; border-radius: 12px; border: 1px solid #334155; width: 90%; max-width: 400px; }
+        :root { --bg: #0f172a; --card: #1e293b; --accent: #3b82f6; --success: #10b981; --gold: #fbbf24; }
+        body { background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; margin: 0; padding-top: 70px; }
+        
+        /* Üst Panel */
+        .top-panel { position: fixed; top: 0; left: 0; right: 0; height: 60px; background: var(--card); display: flex; justify-content: space-around; align-items: center; border-bottom: 2px solid var(--accent); z-index: 1000; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3); }
+        .stat-item { text-align: center; }
+        .stat-label { font-size: 10px; color: #94a3b8; text-transform: uppercase; }
+        .stat-value { font-weight: bold; color: var(--gold); font-size: 18px; }
+
+        .container { max-width: 500px; margin: auto; padding: 15px; }
         .hidden { display: none; }
-        input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; box-sizing: border-box; }
-        button { width: 100%; padding: 12px; background: #3b82f6; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
-        .stat-card { background: #334155; padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: center; }
-        .market-item { display: flex; justify-content: space-between; align-items: center; background: #0f172a; padding: 10px; margin: 5px 0; border-radius: 6px; }
+        .card { background: var(--card); padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #334155; }
+        
+        /* Tesisler */
+        .facility { display: flex; justify-content: space-between; align-items: center; background: #0f172a; padding: 12px; border-radius: 8px; margin: 8px 0; border-left: 4px solid var(--accent); }
+        .facility-info h4 { margin: 0; color: var(--success); }
+        .facility-info p { margin: 4px 0 0; font-size: 12px; color: #94a3b8; }
+        
+        input, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: none; box-sizing: border-box; }
+        input { background: #0f172a; color: white; border: 1px solid #334155; }
+        button { background: var(--accent); color: white; font-weight: bold; cursor: pointer; }
+        .btn-buy { width: auto; padding: 8px 15px; font-size: 12px; background: var(--success); }
+        .logout-btn { background: #ef4444; margin-top: 20px; }
     </style>
 </head>
 <body>
 
+<div id="top-panel" class="top-panel hidden">
+    <div class="stat-item">
+        <div class="stat-label">Bakiye</div>
+        <div class="stat-value"><span id="balance">0</span> $</div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-label">Seviye</div>
+        <div class="stat-value" style="color:var(--accent)">Lv. <span id="level">1</span></div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-label">Tecrübe</div>
+        <div class="stat-value" style="font-size:14px;"><span id="xp">0</span> XP</div>
+    </div>
+</div>
+
 <div id="auth-ui" class="container">
-    <h2 style="text-align: center;">GlobalMarkets</h2>
-    <input type="email" id="email" placeholder="E-posta">
-    <input type="password" id="password" placeholder="Şifre">
-    <button onclick="handleAuth()">Giriş Yap / Kayıt Ol</button>
+    <div class="card">
+        <h2 style="text-align:center">GlobalMarkets</h2>
+        <input type="email" id="email" placeholder="E-posta">
+        <input type="password" id="password" placeholder="Şifre">
+        <button onclick="handleAuth()">Giriş Yap / Kayıt Ol</button>
+    </div>
 </div>
 
 <div id="game-ui" class="container hidden">
-    <div class="stat-card">
-        <div id="user-display" style="font-size: 12px; color: #3b82f6;"></div>
-        <div style="font-size: 24px; font-weight: bold;"><span id="balance">0</span> $</div>
+    <div class="card">
+        <h3>🏗️ Üretim Tesisleri</h3>
+        <div class="facility">
+            <div class="facility-info">
+                <h4>Çiftlik</h4>
+                <p>Gelir: 10$/dk | Maliyet: 1000$</p>
+            </div>
+            <button class="btn-buy" onclick="buyFacility('farm', 1000)">Satın Al</button>
+        </div>
+        <div class="facility">
+            <div class="facility-info">
+                <h4>Maden</h4>
+                <p>Gelir: 50$/dk | Maliyet: 5000$</p>
+            </div>
+            <button class="btn-buy" onclick="buyFacility('mine', 5000)">Satın Al</button>
+        </div>
+        <div class="facility">
+            <div class="facility-info">
+                <h4>Fabrika</h4>
+                <p>Gelir: 200$/dk | Maliyet: 20000$</p>
+            </div>
+            <button class="btn-buy" onclick="buyFacility('factory', 20000)">Satın Al</button>
+        </div>
     </div>
-    <div id="market-section">
-        <h3>Online Pazar</h3>
-        <div id="market-list"></div>
-        <hr style="border-color: #334155;">
-        <input type="text" id="item-name" placeholder="Ürün Adı">
+
+    <div class="card">
+        <h3>🌐 Online Pazar</h3>
+        <div id="market-list" style="font-size:14px; max-height:200px; overflow-y:auto"></div>
+        <input type="text" id="item-name" placeholder="Satılacak Ürün">
         <input type="number" id="item-price" placeholder="Fiyat">
-        <button onclick="listOnMarket()" style="background: #10b981;">Pazara Koy</button>
+        <button onclick="listOnMarket()" style="background:var(--gold); color:black">Pazara İlan Ver</button>
     </div>
-    <button onclick="logout()" style="background: #ef4444; margin-top: 10px;">Çıkış Yap</button>
+
+    <button onclick="logout()" class="logout-btn">Çıkış Yap</button>
 </div>
 
 <script>
@@ -45,7 +99,7 @@
     const SUPABASE_KEY = "sb_publishable_AupJd7rQfIolZEbK0rZGWw_SFgGmP8z";
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    let currentUser = null;
+    let userData = null;
 
     async function handleAuth() {
         const email = document.getElementById('email').value;
@@ -55,9 +109,9 @@
         if (error) {
             const { data: regData, error: regError } = await supabaseClient.auth.signUp({ email, password });
             if (regError) return alert(regError.message);
-            currentUser = regData.user;
+            userData = regData.user;
         } else {
-            currentUser = data.user;
+            userData = data.user;
         }
         initGame();
     }
@@ -65,36 +119,71 @@
     async function initGame() {
         document.getElementById('auth-ui').classList.add('hidden');
         document.getElementById('game-ui').classList.remove('hidden');
-        document.getElementById('user-display').innerText = currentUser.email;
-        loadProfile();
+        document.getElementById('top-panel').classList.remove('hidden');
+        await loadProfile();
         loadMarket();
+        setInterval(autoEarn, 60000); // Her dakika pasif gelir
     }
 
     async function loadProfile() {
-        let { data } = await supabaseClient.from('profiles').select('*').eq('id', currentUser.id).single();
+        let { data } = await supabaseClient.from('profiles').select('*').eq('id', userData.id).single();
         if (!data) {
-            const { data: newData } = await supabaseClient.from('profiles').insert([{ id: currentUser.id, username: currentUser.email.split('@')[0], money: 500 }]).select().single();
+            const { data: newData } = await supabaseClient.from('profiles').insert([
+                { id: userData.id, username: userData.email.split('@')[0], money: 500, level: 1, xp: 0 }
+            ]).select().single();
             data = newData;
         }
-        document.getElementById('balance').innerText = data.money;
+        updateDisplay(data);
+    }
+
+    function updateDisplay(data) {
+        document.getElementById('balance').innerText = data.money.toLocaleString();
+        document.getElementById('level').innerText = data.level;
+        document.getElementById('xp').innerText = data.xp;
+    }
+
+    async function buyFacility(type, cost) {
+        let { data } = await supabaseClient.from('profiles').select('money, xp').eq('id', userData.id).single();
+        if (data.money < cost) return alert("Yetersiz bakiye!");
+
+        const { error } = await supabaseClient.from('profiles').update({ 
+            money: data.money - cost,
+            xp: data.xp + (cost / 10) 
+        }).eq('id', userData.id);
+
+        if (!error) {
+            alert(type.toUpperCase() + " başarıyla kuruldu!");
+            loadProfile();
+        }
+    }
+
+    async function autoEarn() {
+        // Bu kısım normalde veritabanındaki tesis sayısına göre hesaplanır
+        // Basit mantık için her dakika XP ve küçük miktar para ekler
+        let { data } = await supabaseClient.from('profiles').select('money, xp').eq('id', userData.id).single();
+        await supabaseClient.from('profiles').update({ 
+            money: data.money + 5,
+            xp: data.xp + 1
+        }).eq('id', userData.id);
+        loadProfile();
     }
 
     async function loadMarket() {
         const { data } = await supabaseClient.from('global_market').select('*').order('created_at', { ascending: false });
         const list = document.getElementById('market-list');
-        list.innerHTML = data && data.length > 0 ? data.map(item => `
-            <div class="market-item">
-                <span>${item.item_name} (${item.price}$)</span>
-                <button style="width:auto; padding:5px;" onclick="alert('Satın alma yakında aktif!')">Al</button>
+        list.innerHTML = data.map(item => `
+            <div class="facility" style="border-left-color:var(--gold)">
+                <span>${item.item_name} <br> <small>${item.price} $</small></span>
+                <button class="btn-buy" onclick="alert('Satın alma yakında!')">Satın Al</button>
             </div>
-        `).join('') : "Pazar boş.";
+        `).join('');
     }
 
     async function listOnMarket() {
         const name = document.getElementById('item-name').value;
         const price = document.getElementById('item-price').value;
         if(!name || !price) return;
-        await supabaseClient.from('global_market').insert([{ seller_name: currentUser.email, item_name: name, price: parseInt(price) }]);
+        await supabaseClient.from('global_market').insert([{ seller_name: userData.email, item_name: name, price: parseInt(price) }]);
         loadMarket();
     }
 
