@@ -3,39 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Industrial Empire: Ultimate</title>
+    <title>Industrial Empire: Logistics Pro</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@300;500;700&display=swap" rel="stylesheet">
     <style>
-        :root { --bg: #0a0c10; --card: #161b22; --accent: #238636; --neon: #58a6ff; --gold: #f1e05a; }
+        :root { --bg: #0a0c10; --card: #161b22; --accent: #238636; --neon: #58a6ff; --gold: #f1e05a; --error: #f85149; }
         * { box-sizing: border-box; transition: 0.2s; }
         body { background: var(--bg); color: #c9d1d9; font-family: 'Inter', sans-serif; margin: 0; padding-bottom: 80px; }
         
         .header { position: fixed; top: 0; width: 100%; background: #010409; padding: 10px 20px; border-bottom: 1px solid #30363d; z-index: 1000; display: flex; justify-content: space-between; align-items: center; }
         .user-name { font-family: 'Orbitron'; color: var(--neon); font-size: 0.8rem; }
-        .stats { display: flex; gap: 15px; font-family: 'Orbitron'; font-size: 0.8rem; }
+        .stats { display: flex; gap: 12px; font-family: 'Orbitron'; font-size: 0.75rem; }
         
-        .container { padding: 70px 15px 20px; max-width: 600px; margin: auto; }
+        .container { padding: 75px 15px 20px; max-width: 600px; margin: auto; }
         .page { display: none; }
         .page.active { display: block; }
 
-        .card { background: var(--card); border: 1px solid #30363d; border-radius: 12px; padding: 15px; margin-bottom: 15px; }
-        h3 { margin-top: 0; font-size: 0.9rem; color: white; border-bottom: 1px solid #30363d; padding-bottom: 8px; text-transform: uppercase; }
+        .card { background: var(--card); border: 1px solid #30363d; border-radius: 12px; padding: 15px; margin-bottom: 15px; position: relative; }
+        h3 { margin: 0 0 10px 0; font-size: 0.85rem; color: white; border-bottom: 1px solid #30363d; padding-bottom: 5px; text-transform: uppercase; }
         
         .unit { background: #0d1117; padding: 12px; border-radius: 8px; border-left: 4px solid var(--accent); margin-bottom: 10px; }
-        .recipe { font-size: 0.7rem; color: #8b949e; margin-bottom: 5px; }
-        .progress-bar { width: 100%; height: 8px; background: #30363d; border-radius: 4px; overflow: hidden; margin: 10px 0; }
+        .recipe { font-size: 0.7rem; color: #8b949e; margin-bottom: 3px; }
+        .progress-bar { width: 100%; height: 6px; background: #30363d; border-radius: 3px; overflow: hidden; margin: 8px 0; }
         .progress-fill { height: 100%; width: 0%; background: var(--accent); }
 
-        .btn { width: 100%; padding: 10px; border-radius: 6px; border: none; cursor: pointer; font-weight: bold; font-size: 0.75rem; text-transform: uppercase; }
+        .btn { width: 100%; padding: 10px; border-radius: 6px; border: none; cursor: pointer; font-weight: bold; font-size: 0.7rem; text-transform: uppercase; }
         .btn-action { background: var(--accent); color: white; }
         .btn-action:disabled { background: #21262d; color: #8b949e; cursor: not-allowed; }
         
         input, select { width: 100%; padding: 10px; background: #0d1117; border: 1px solid #30363d; color: white; border-radius: 6px; margin-bottom: 10px; }
 
-        .nav { position: fixed; bottom: 0; width: 100%; background: #010409; display: flex; border-top: 1px solid #30363d; }
-        .nav-btn { flex: 1; padding: 15px; background: none; border: none; color: #8b949e; cursor: pointer; font-size: 0.7rem; font-weight: bold; }
+        .nav { position: fixed; bottom: 0; width: 100%; background: #010409; display: flex; border-top: 1px solid #30363d; z-index: 1000; }
+        .nav-btn { flex: 1; padding: 15px; background: none; border: none; color: #8b949e; cursor: pointer; font-size: 0.65rem; font-weight: bold; }
         .nav-btn.active { color: var(--neon); border-top: 2px solid var(--neon); }
+
+        .logistics-stat { font-size: 0.7rem; color: var(--neon); margin-top: 5px; font-weight: bold; }
         .hidden { display: none !important; }
     </style>
 </head>
@@ -56,67 +58,75 @@
         <div class="user-info"><span id="display-name" class="user-name">...</span></div>
         <div class="stats">
             <div style="color:var(--gold)">💰 <span id="stat-money">0</span></div>
-            <div style="color:var(--neon)">⭐ <span id="stat-xp">0</span></div>
+            <div style="color:var(--neon)">📦 <span id="stat-storage">0/0</span></div>
         </div>
     </div>
 
     <div class="container">
-        <div id="p-mining" class="page active">
+        <div id="p-logistics" class="page active">
             <div class="card">
-                <h3>⛏️ HAMMADDE ÜRETİMİ</h3>
+                <h3>🚚 LOJİSTİK MERKEZİ</h3>
+                <p class="recipe">Depo ve taşıma kapasiteni geliştir. Kapasite dolarsa üretim yapılamaz.</p>
+                <div class="unit" style="border-left-color: var(--neon);">
+                    <div class="recipe" id="storage-info">Mevcut Kapasite: 50 Birim</div>
+                    <button id="btn-upgrade-storage" class="btn btn-action" style="background:var(--neon)" onclick="upgradeLogistics()">Kapasite Artır (5.000$)</button>
+                </div>
+            </div>
+            <div class="card">
+                <h3>⛏️ HAMMADDE SAHALARI</h3>
                 <div class="unit">
-                    <div class="recipe">Ürün: Demir Cevheri | Maliyet: 100$</div>
+                    <div class="recipe">Ürün: Demir Cevheri | Maliyet: 500$ | Süre: 2 Saat</div>
                     <div class="progress-bar"><div id="bar-iron" class="progress-fill"></div></div>
-                    <button id="btn-iron" class="btn btn-action" onclick="work('iron', 'Demir Cevheri', 100, 60000)">Kazıya Başla (1 Dakika)</button>
+                    <button id="btn-iron" class="btn btn-action" onclick="work('iron', 'Demir Cevheri', 500, 7200000)">Üretimi Planla</button>
                 </div>
                 <div class="unit">
-                    <div class="recipe">Ürün: Ham Petrol | Maliyet: 300$</div>
+                    <div class="recipe">Ürün: Ham Petrol | Maliyet: 1.200$ | Süre: 4 Saat</div>
                     <div class="progress-bar"><div id="bar-oil" class="progress-fill"></div></div>
-                    <button id="btn-oil" class="btn btn-action" onclick="work('oil', 'Ham Petrol', 300, 120000)">Sondajı Başlat (2 Dakika)</button>
+                    <button id="btn-oil" class="btn btn-action" onclick="work('oil', 'Ham Petrol', 1200, 14400000)">Sondajı Başlat</button>
                 </div>
             </div>
         </div>
 
         <div id="p-craft" class="page">
             <div class="card">
-                <h3>🏭 İŞLEME FABRİKASI</h3>
+                <h3>🏭 AĞIR SANAYİ FABRİKASI</h3>
                 <div class="unit">
-                    <div class="recipe">Gereken: 2x Demir Cevheri | Ürün: Çelik Kiriş</div>
+                    <div class="recipe">Gereken: 5x Demir | Ürün: Çelik Kiriş | Süre: 6 Saat</div>
                     <div class="progress-bar"><div id="bar-steel" class="progress-fill"></div></div>
-                    <button id="btn-steel" class="btn btn-action" onclick="craft('steel', 'Çelik Kiriş', {'Demir Cevheri': 2}, 180000)">Çelik Üret (3 Dakika)</button>
+                    <button id="btn-steel" class="btn btn-action" onclick="craft('steel', 'Çelik Kiriş', {'Demir Cevheri': 5}, 21600000)">Çelik Dökümü</button>
                 </div>
                 <div class="unit">
-                    <div class="recipe">Gereken: 1x Çelik + 1x Petrol | Ürün: Motor</div>
+                    <div class="recipe">Gereken: 2x Çelik + 3x Petrol | Ürün: Motor | Süre: 8 Saat</div>
                     <div class="progress-bar"><div id="bar-engine" class="progress-fill"></div></div>
-                    <button id="btn-engine" class="btn btn-action" onclick="craft('engine', 'Motor', {'Çelik Kiriş': 1, 'Ham Petrol': 1}, 300000)">Motor Üret (5 Dakika)</button>
+                    <button id="btn-engine" class="btn btn-action" onclick="craft('engine', 'Motor', {'Çelik Kiriş': 2, 'Ham Petrol': 3}, 28800000)">Motor Montajı</button>
                 </div>
             </div>
         </div>
 
         <div id="p-inv" class="page">
             <div class="card">
-                <h3>📦 ENVANTERİM</h3>
-                <div id="inventory-list" style="font-size:0.9rem"></div>
+                <h3>📦 MERKEZİ DEPO</h3>
+                <div id="inventory-list"></div>
             </div>
             <div class="card">
-                <h3>⚖️ ÜRÜN SATIŞI</h3>
+                <h3>💰 GLOBAL SATIŞ</h3>
                 <select id="sell-select"></select>
-                <button class="btn btn-action" style="background:var(--gold); color:black" onclick="sellItem()">SEÇİLİ ÜRÜNÜ SAT</button>
+                <button class="btn btn-action" style="background:var(--gold); color:black" onclick="sellItem()">SEÇİLİ ÜRÜNÜ İHRAÇ ET</button>
             </div>
         </div>
 
         <div id="p-leader" class="page">
             <div class="card">
-                <h3>🏆 GLOBAL SIRALAMA</h3>
+                <h3>🏆 DÜNYA DEVLERİ</h3>
                 <div id="leader-list"></div>
             </div>
         </div>
     </div>
 
     <nav class="nav">
-        <button class="nav-btn active" onclick="tab('mining', this)">MADEN</button>
+        <button class="nav-btn active" onclick="tab('logistics', this)">LOJİSTİK</button>
         <button class="nav-btn" onclick="tab('craft', this)">FABRİKA</button>
-        <button class="nav-btn" onclick="tab('inv', this)">ENVANTER</button>
+        <button class="nav-btn" onclick="tab('inv', this)">DEPO</button>
         <button class="nav-btn" onclick="tab('leader', this)">LİDERLER</button>
     </nav>
 </div>
@@ -124,7 +134,7 @@
 <script>
     const sb = supabase.createClient("https://zzqrcxzrfmqmuqlklzzr.supabase.co", "sb_publishable_AupJd7rQfIolZEbK0rZGWw_SFgGmP8z");
     let me = null, myProfile = null;
-    const marketPrices = { "Demir Cevheri": 200, "Ham Petrol": 550, "Çelik Kiriş": 1500, "Motor": 6500 };
+    const marketPrices = { "Demir Cevheri": 800, "Ham Petrol": 2200, "Çelik Kiriş": 7500, "Motor": 25000 };
 
     async function handleAuth() {
         const e = document.getElementById('reg-e').value, p = document.getElementById('reg-p').value, u = document.getElementById('reg-u').value;
@@ -142,30 +152,40 @@
         document.getElementById('auth-screen').classList.add('hidden');
         document.getElementById('game-ui').classList.remove('hidden');
         sync();
-        setInterval(sync, 15000);
+        setInterval(sync, 20000);
     }
 
     async function sync() {
         let { data } = await sb.from('profiles').select('*').eq('id', me.id).single();
         myProfile = data;
+        
+        // Altyapı sütunları yoksa varsayılan ata (Mantıksal koruma)
+        if(!myProfile.logistics_level) myProfile.logistics_level = 1;
+        let storageCap = myProfile.logistics_level * 50;
+        let currentStock = Object.values(myProfile.inventory || {}).reduce((a, b) => a + b, 0);
+
         document.getElementById('display-name').innerText = data.username;
         document.getElementById('stat-money').innerText = data.money.toLocaleString() + "$";
-        document.getElementById('stat-xp').innerText = data.xp;
+        document.getElementById('stat-storage').innerText = `${currentStock}/${storageCap}`;
+        document.getElementById('storage-info').innerText = `Mevcut Kapasite: ${storageCap} Birim (Seviye ${myProfile.logistics_level})`;
         
         const list = document.getElementById('inventory-list'), sel = document.getElementById('sell-select');
         let html = "", opts = "";
         for (const [item, qty] of Object.entries(data.inventory || {})) {
             if(qty > 0) {
-                html += `<div style="display:flex; justify-content:space-between; padding:5px 0; border-bottom:1px solid #21262d"><span>${item}</span><b>x${qty}</b></div>`;
-                opts += `<option value="${item}">${item} (${marketPrices[item]}$)</option>`;
+                html += `<div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #21262d"><span>${item}</span><b>x${qty}</b></div>`;
+                opts += `<option value="${item}">${item} ($${marketPrices[item]})</option>`;
             }
         }
-        list.innerHTML = html || "Envanter boş...";
+        list.innerHTML = html || "Depo boş.";
         sel.innerHTML = opts || "<option>Ürün yok</option>";
     }
 
     async function work(id, name, cost, time) {
-        if(myProfile.money < cost) return alert("Bakiye yetersiz!");
+        let currentStock = Object.values(myProfile.inventory || {}).reduce((a, b) => a + b, 0);
+        if(currentStock >= (myProfile.logistics_level * 50)) return alert("Depo kapasitesi dolu! Lojistik merkezinden geliştirme yapın.");
+        if(myProfile.money < cost) return alert("Yetersiz bakiye!");
+
         const btn = document.getElementById('btn-'+id), bar = document.getElementById('bar-'+id);
         btn.disabled = true;
         await sb.from('profiles').update({ money: myProfile.money - cost }).eq('id', me.id);
@@ -173,14 +193,14 @@
         animate(bar, time, async () => {
             let inv = {...myProfile.inventory};
             inv[name] = (inv[name] || 0) + 1;
-            await sb.from('profiles').update({ inventory: inv, xp: myProfile.xp + 10 }).eq('id', me.id);
+            await sb.from('profiles').update({ inventory: inv, xp: myProfile.xp + 25 }).eq('id', me.id);
             btn.disabled = false;
             sync();
         });
     }
 
     async function craft(id, name, reqs, time) {
-        for (let r in reqs) if((myProfile.inventory[r] || 0) < reqs[r]) return alert(r + " eksik!");
+        for (let r in reqs) if((myProfile.inventory[r] || 0) < reqs[r]) return alert(r + " stokta yok!");
         const btn = document.getElementById('btn-'+id), bar = document.getElementById('bar-'+id);
         btn.disabled = true;
 
@@ -191,10 +211,22 @@
         animate(bar, time, async () => {
             let finalInv = {...myProfile.inventory};
             finalInv[name] = (finalInv[name] || 0) + 1;
-            await sb.from('profiles').update({ inventory: finalInv, xp: myProfile.xp + 50 }).eq('id', me.id);
+            await sb.from('profiles').update({ inventory: finalInv, xp: myProfile.xp + 150 }).eq('id', me.id);
             btn.disabled = false;
             sync();
         });
+    }
+
+    async function upgradeLogistics() {
+        let cost = myProfile.logistics_level * 5000;
+        if(myProfile.money < cost) return alert("Geliştirme için $" + cost + " gerekli!");
+        
+        await sb.from('profiles').update({ 
+            money: myProfile.money - cost,
+            logistics_level: myProfile.logistics_level + 1 
+        }).eq('id', me.id);
+        alert("Lojistik ağı genişletildi! Yeni Kapasite: " + ((myProfile.logistics_level + 1) * 50));
+        sync();
     }
 
     function animate(bar, time, cb) {
@@ -203,7 +235,7 @@
             let p = ((Date.now() - start) / time) * 100;
             bar.style.width = Math.min(p, 100) + "%";
             if(p >= 100) { clearInterval(t); bar.style.width = "0%"; cb(); }
-        }, 100);
+        }, 1000); // Saatlik üretim olduğu için saniyelik güncelleme yeterli
     }
 
     async function sellItem() {
@@ -217,7 +249,7 @@
 
     async function loadLeaders() {
         let { data } = await sb.from('profiles').select('username, money').order('money', {ascending: false}).limit(5);
-        document.getElementById('leader-list').innerHTML = data.map((u, i) => `<div style="padding:8px 0; border-bottom:1px solid #21262d">#${i+1} ${u.username} - ${u.money}$</div>`).join('');
+        document.getElementById('leader-list').innerHTML = data.map((u, i) => `<div style="padding:10px 0; border-bottom:1px solid #21262d">#${i+1} ${u.username} <span style="float:right; color:var(--gold)">$${u.money.toLocaleString()}</span></div>`).join('');
     }
 
     function tab(id, btn) {
@@ -229,5 +261,7 @@
     }
 </script>
 </body>
-    </html>
+                                                  </html>
+    
+
 
