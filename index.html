@@ -3,173 +3,193 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Industrial Empire: Tech & Power</title>
+    <title>Industrial Empire: Ultimate Edition</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@300;500;700&display=swap" rel="stylesheet">
     <style>
-        :root { --bg: #0d1117; --card: #161b22; --accent: #238636; --neon: #58a6ff; --gold: #f1e05a; --energy: #ffea00; }
+        :root { --bg: #0a0c10; --card: #161b22; --accent: #238636; --neon: #58a6ff; --gold: #f1e05a; --energy: #ffea00; --tax: #f85149; --tech: #8957e5; }
         * { box-sizing: border-box; font-family: 'Inter', sans-serif; }
-        body { background: var(--bg); color: #c9d1d9; margin: 0; padding-bottom: 90px; }
+        body { background: var(--bg); color: #c9d1d9; margin: 0; padding-bottom: 100px; overflow-x: hidden; }
         
-        .header { position: fixed; top: 0; width: 100%; background: #010409; padding: 12px; border-bottom: 1px solid #30363d; z-index: 1000; display: flex; justify-content: space-around; font-family: 'Orbitron'; font-size: 0.7rem; }
-        .container { padding: 70px 15px 20px; max-width: 600px; margin: auto; }
+        /* Dashboard */
+        .header { position: fixed; top: 0; width: 100%; background: #010409; padding: 10px; border-bottom: 1px solid #30363d; z-index: 1000; display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; font-family: 'Orbitron'; font-size: 0.6rem; text-align: center; }
+        .container { padding: 85px 15px 20px; max-width: 650px; margin: auto; }
         .page { display: none; } .page.active { display: block; }
+
+        /* Cards & Buttons */
+        .card { background: var(--card); border: 1px solid #30363d; border-radius: 12px; padding: 15px; margin-bottom: 15px; position: relative; }
+        h3 { color: var(--neon); font-size: 0.8rem; margin: 0 0 10px 0; text-transform: uppercase; border-bottom: 1px solid #30363d; padding-bottom: 5px; }
         
-        .card { background: var(--card); border: 1px solid #30363d; border-radius: 12px; padding: 15px; margin-bottom: 15px; }
-        .btn { width: 100%; padding: 12px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; text-transform: uppercase; font-size: 0.7rem; transition: 0.2s; }
+        .btn { width: 100%; padding: 12px; border-radius: 8px; border: none; cursor: pointer; font-weight: 800; text-transform: uppercase; font-size: 0.65rem; margin-top: 8px; transition: 0.2s; }
+        .btn:active { transform: scale(0.98); }
         .btn-work { background: var(--accent); color: white; }
-        .btn-tech { background: var(--neon); color: white; }
-        
-        /* Envanter Tasarımı */
-        .inv-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #30363d; font-size: 0.8rem; }
-        .inv-cat { color: var(--neon); font-size: 0.7rem; font-weight: bold; margin-top: 10px; border-bottom: 1px solid var(--neon); }
+        .btn-buy { background: var(--gold); color: black; }
+        .btn-tech { background: var(--tech); color: white; }
 
-        /* Enerji Bar */
-        .energy-bar { width: 100%; height: 5px; background: #30363d; border-radius: 5px; margin-top: 5px; }
-        .energy-fill { height: 100%; background: var(--energy); width: 100%; transition: 0.3s; }
-
+        /* Bars */
         .progress-bar { width: 100%; height: 8px; background: #30363d; border-radius: 4px; overflow: hidden; margin: 10px 0; }
-        .progress-fill { height: 100%; width: 0%; background: var(--accent); }
+        .progress-fill { height: 100%; width: 0%; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+        .energy-bar { width: 100%; height: 4px; background: #30363d; border-radius: 2px; margin-top: 4px; }
+        .energy-fill { height: 100%; background: var(--energy); width: 100%; }
 
-        .nav { position: fixed; bottom: 0; width: 100%; background: #010409; display: flex; border-top: 1px solid #30363d; z-index: 1000; }
-        .nav-btn { flex: 1; padding: 15px; background: none; border: none; color: #8b949e; cursor: pointer; font-size: 0.6rem; font-weight: bold; }
-        .nav-btn.active { color: var(--neon); border-top: 2px solid var(--neon); }
+        /* Market */
+        .market-item { display: flex; justify-content: space-between; padding: 8px; background: #0d1117; border-radius: 6px; margin-bottom: 5px; font-size: 0.75rem; border-left: 3px solid var(--gold); }
+
+        /* Navigation */
+        .nav { position: fixed; bottom: 0; width: 100%; background: #010409; display: flex; border-top: 1px solid #30363d; z-index: 1000; height: 75px; }
+        .nav-btn { flex: 1; padding: 10px; background: none; border: none; color: #8b949e; cursor: pointer; font-size: 0.55rem; font-weight: bold; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; }
+        .nav-btn.active { color: var(--neon); border-top: 2px solid var(--neon); background: rgba(88, 166, 255, 0.05); }
     </style>
 </head>
 <body>
 
 <div id="game-ui">
     <div class="header">
-        <div style="color:var(--gold)">$ <span id="m-money">0</span></div>
-        <div style="color:var(--neon)">XP <span id="m-xp">0</span></div>
-        <div style="color:var(--energy)">⚡ <span id="m-energy">100/100</span></div>
+        <div style="color:var(--gold)">💰 <span id="h-money">0</span></div>
+        <div style="color:var(--energy)">⚡ <span id="h-energy">100</span></div>
+        <div style="color:var(--tech)">🧬 <span id="h-tp">0</span></div>
+        <div style="color:var(--tax)">📉 <span id="h-tax">0</span></div>
     </div>
 
     <div class="container">
         <div id="p-prod" class="page active">
             <div class="card">
-                <h3>⚡ ENERJİ SANTRALİ</h3>
-                <p style="font-size:0.7rem">Üretim yapmak enerji tüketir. Enerji her saniye dolar.</p>
+                <h3>⚡ ENERJİ VE YÖNETİM</h3>
                 <div class="energy-bar"><div id="energy-fill" class="energy-fill"></div></div>
-                <button class="btn btn-tech" style="margin-top:10px;" onclick="upgradeEnergy()">GÜNEŞ PANELİ KUR ($5,000)</button>
+                <div style="display:flex; gap:10px; margin-top:10px;">
+                    <button class="btn btn-tech" onclick="upgradeEnergy()">Panel Kur ($5K)</button>
+                    <button class="btn" style="background:var(--tax); color:white" onclick="payTax()">Vergi Öde</button>
+                </div>
             </div>
             <div id="unit-list"></div>
         </div>
 
-        <div id="p-inv" class="page">
+        <div id="p-market" class="page">
             <div class="card">
-                <h3>📦 MERKEZİ DEPO (GELİŞMİŞ)</h3>
-                <div id="inv-content"></div>
+                <h3>📈 CANLI BORSA (Q-FİYAT)</h3>
+                <div id="market-list"></div>
             </div>
             <div class="card">
-                <h3>⚖️ GLOBAL BORSA</h3>
-                <div id="market-ui"></div>
+                <h3>📦 MERKEZ DEPO</h3>
+                <div id="inv-list"></div>
             </div>
         </div>
 
-        <div id="p-tech" class="page">
+        <div id="p-corp" class="page">
             <div class="card">
-                <h3>🔬 AR-GE MERKEZİ</h3>
-                <p>Teknoloji Puanı: <b id="tech-points">0</b></p>
+                <h3>👥 İK VE İŞ GÜCÜ</h3>
+                <p style="font-size:0.7rem">İşçi Sayısı: <b id="c-workers">0</b> (Hız: +%2 per işçi)</p>
+                <button class="btn btn-buy" onclick="hireWorker()">İşçi Kirala ($2,500)</button>
+            </div>
+            <div class="card">
+                <h3>🔬 TEKNOLOJİ AĞACI</h3>
+                <p style="font-size:0.7rem">Üretimlerden kazandığın🧬 puanları burada harca.</p>
                 <button class="btn btn-tech" onclick="buyTech('speed')">Üretim Hızı +%10 (5 TP)</button>
-                <button class="btn btn-tech" style="margin-top:10px;" onclick="buyTech('cost')">Maliyet -%15 (10 TP)</button>
+                <button class="btn btn-tech" style="margin-top:5px" onclick="buyTech('energy')">Enerji Max +50 (10 TP)</button>
             </div>
         </div>
     </div>
 
     <nav class="nav">
         <button class="nav-btn active" onclick="tab('prod', this)">ÜRETİM</button>
-        <button class="nav-btn" onclick="tab('inv', this)">DEPO</button>
-        <button class="nav-btn" onclick="tab('tech', this)">TEKNOLOJİ</button>
+        <button class="nav-btn" onclick="tab('market', this)">BORSA</button>
+        <button class="nav-btn" onclick="tab('corp', this)">ŞİRKET</button>
     </nav>
 </div>
 
 <script>
     const sb = supabase.createClient("https://zzqrcxzrfmqmuqlklzzr.supabase.co", "sb_publishable_AupJd7rQfIolZEbK0rZGWw_SFgGmP8z");
     let me = null, myProfile = null;
-    let currentEnergy = 100;
+    let localEnergy = 100;
 
-    const dataModel = [
-        { id: 'm1', name: 'Maden Ocağı', prod: 'Demir', cat: 'Hammadde', time: 30, energy: 10, xp: 5, price: 100 },
-        { id: 'm2', name: 'Petrol Kuyusu', prod: 'Petrol', cat: 'Hammadde', time: 60, energy: 20, xp: 15, price: 350 },
-        { id: 'f1', name: 'Çelik Fabrikası', prod: 'Çelik', cat: 'Yarı Mamul', time: 120, energy: 40, xp: 50, price: 1200, req: {'Demir': 5} }
-    ];
+    const gameData = {
+        units: [
+            { id: 'm1', name: 'Bakır Madeni', prod: 'Bakır', time: 30, e: 10, xp: 10, basePrice: 200 },
+            { id: 'm2', name: 'Petrol Kuyusu', prod: 'Petrol', time: 60, e: 20, xp: 25, basePrice: 600 },
+            { id: 'f1', name: 'Kablo Fabrikası', prod: 'Kablo', time: 120, e: 40, xp: 100, basePrice: 3500, req: {'Bakır': 5} }
+        ],
+        market: { 'Bakır': 200, 'Petrol': 600, 'Kablo': 3500 }
+    };
 
     async function init() {
-        const { data } = await sb.auth.getUser();
-        if(!data.user) return; me = data.user;
+        const { data: { user } } = await sb.auth.getUser();
+        if(!user) return; me = user;
+        
         sync();
-        setInterval(energyRegen, 2000);
+        setInterval(updateMarketPrices, 30000);
+        setInterval(energyLoop, 1500);
         setInterval(sync, 15000);
     }
 
     async function sync() {
-        let { data } = await sb.from('profiles').select('*').eq('id', me.id).single();
+        const { data } = await sb.from('profiles').select('*').eq('id', me.id).single();
         myProfile = data;
-        
-        document.getElementById('m-money').innerText = data.money.toLocaleString();
-        document.getElementById('m-xp').innerText = data.xp;
-        document.getElementById('tech-points').innerText = data.tech_points || 0;
-        
+
+        document.getElementById('h-money').innerText = data.money.toLocaleString();
+        document.getElementById('h-tp').innerText = data.tech_points || 0;
+        document.getElementById('h-tax').innerText = (data.tax_debt || 0).toLocaleString();
+        document.getElementById('c-workers').innerText = data.worker_count || 1;
+
         renderUnits();
         renderInventory();
+        renderMarket();
     }
 
-    function energyRegen() {
-        let maxEnergy = (myProfile?.energy_level || 1) * 100;
-        if(currentEnergy < maxEnergy) {
-            currentEnergy += 2;
-            updateEnergyUI();
-        }
-    }
-
-    function updateEnergyUI() {
+    function energyLoop() {
         let max = (myProfile?.energy_level || 1) * 100;
-        document.getElementById('m-energy').innerText = `${currentEnergy}/${max}`;
-        document.getElementById('energy-fill').style.width = (currentEnergy / max * 100) + "%";
+        if(localEnergy < max) localEnergy += 2;
+        document.getElementById('h-energy').innerText = localEnergy;
+        document.getElementById('energy-fill').style.width = (localEnergy / max * 100) + "%";
+    }
+
+    function updateMarketPrices() {
+        for(let item in gameData.market) {
+            let change = 0.9 + (Math.random() * 0.2); // %90 ile %110 arası dalgalanma
+            gameData.market[item] = Math.round(gameData.market[item] * change);
+        }
+        renderMarket();
     }
 
     function renderUnits() {
-        document.getElementById('unit-list').innerHTML = dataModel.map(u => `
+        const div = document.getElementById('unit-list');
+        div.innerHTML = gameData.units.map(u => `
             <div class="card">
-                <div style="display:flex; justify-content:space-between">
-                    <b>${u.name}</b> <span style="color:var(--energy)">⚡${u.energy}</span>
-                </div>
+                <h3>${u.name}</h3>
                 <div class="progress-bar"><div id="bar-${u.id}" class="progress-fill"></div></div>
-                <button class="btn btn-work" id="btn-${u.id}" onclick="startWork('${u.id}')">Üretimi Başlat</button>
+                <button class="btn btn-work" id="btn-${u.id}" onclick="startProduction('${u.id}')">ÜRETİME BAŞLA (⚡${u.e})</button>
             </div>
         `).join('');
     }
 
-    async function startWork(id) {
-        const u = dataModel.find(x => x.id === id);
-        if(currentEnergy < u.energy) return alert("Enerji Yetersiz!");
-        
+    async function startProduction(id) {
+        const u = gameData.units.find(x => x.id === id);
+        if(localEnergy < u.e) return alert("Enerji yetersiz!");
         if(u.req) {
-            for(let r in u.req) if((myProfile.inventory[r] || 0) < u.req[r]) return alert(r + " eksik!");
+            for(let r in u.req) if((myProfile.inventory[r] || 0) < u.req[r]) return alert(r + " yetersiz!");
         }
 
-        currentEnergy -= u.energy;
-        updateEnergyUI();
-        
+        localEnergy -= u.e;
         const btn = document.getElementById('btn-'+id);
         const bar = document.getElementById('bar-'+id);
         btn.disabled = true;
 
+        let speedBonus = 1 - ((myProfile.worker_count || 1) * 0.02);
+        let actualTime = u.time * speedBonus * 1000;
+
         let start = Date.now();
-        let timer = setInterval(() => {
-            let p = ((Date.now() - start) / (u.time * 1000)) * 100;
+        let t = setInterval(() => {
+            let p = ((Date.now() - start) / actualTime) * 100;
             bar.style.width = Math.min(p, 100) + "%";
             if(p >= 100) {
-                clearInterval(timer);
-                completeWork(u);
+                clearInterval(t);
+                finishProduction(u);
                 bar.style.width = "0%";
                 btn.disabled = false;
             }
         }, 100);
     }
 
-    async function completeWork(u) {
+    async function finishProduction(u) {
         let inv = {...myProfile.inventory};
         if(u.req) for(let r in u.req) inv[r] -= u.req[r];
         inv[u.prod] = (inv[u.prod] || 0) + 1;
@@ -177,52 +197,60 @@
         await sb.from('profiles').update({ 
             inventory: inv, 
             xp: myProfile.xp + u.xp,
-            tech_points: (myProfile.tech_points || 0) + 1 
+            tech_points: (myProfile.tech_points || 0) + 1,
+            tax_debt: (myProfile.tax_debt || 0) + 50 
         }).eq('id', me.id);
         sync();
     }
 
     function renderInventory() {
-        const div = document.getElementById('inv-content');
-        const market = document.getElementById('market-ui');
-        let html = "", mHtml = "";
-        
-        const cats = ['Hammadde', 'Yarı Mamul'];
-        cats.forEach(c => {
-            html += `<div class="inv-cat">${c}</div>`;
-            dataModel.filter(x => x.cat === c).forEach(u => {
-                let qty = myProfile.inventory[u.prod] || 0;
-                html += `<div class="inv-item"><span>${u.prod}</span><b>x${qty}</b></div>`;
-                if(qty > 0) mHtml += `<button class="btn btn-work" style="margin-top:5px; background:var(--gold); color:black" onclick="sell('${u.prod}', ${u.price})">${u.prod} SAT ($${u.price})</button>`;
-            });
-        });
-        div.innerHTML = html;
-        market.innerHTML = mHtml || "Satılacak ürün yok.";
+        const div = document.getElementById('inv-list');
+        let html = "";
+        for(let item in myProfile.inventory) {
+            let qty = myProfile.inventory[item];
+            if(qty > 0) {
+                html += `<div class="market-item"><span>${item} (x${qty})</span><button class="btn" style="width:60px; margin:0; background:var(--gold); color:black" onclick="sell('${item}')">SAT</button></div>`;
+            }
+        }
+        div.innerHTML = html || "Depo boş.";
     }
 
-    async function sell(prod, price) {
+    function renderMarket() {
+        const div = document.getElementById('market-list');
+        div.innerHTML = Object.entries(gameData.market).map(([name, price]) => `
+            <div class="market-item"><span>${name}</span><b>$${price}</b></div>
+        `).join('');
+    }
+
+    async function sell(item) {
+        let price = gameData.market[item] || 100;
         let inv = {...myProfile.inventory};
-        inv[prod] -= 1;
+        inv[item] -= 1;
         await sb.from('profiles').update({ money: myProfile.money + price, inventory: inv }).eq('id', me.id);
         sync();
     }
 
-    async function upgradeEnergy() {
-        if(myProfile.money < 5000) return alert("Para yetersiz!");
-        await sb.from('profiles').update({ money: myProfile.money - 5000, energy_level: (myProfile.energy_level || 1) + 1 }).eq('id', me.id);
+    async function payTax() {
+        if(myProfile.money < myProfile.tax_debt) return alert("Para yetersiz!");
+        await sb.from('profiles').update({ money: myProfile.money - myProfile.tax_debt, tax_debt: 0 }).eq('id', me.id);
         sync();
     }
 
-    function tab(id, b) {
+    async function hireWorker() {
+        let cost = 2500 * (myProfile.worker_count || 1);
+        if(myProfile.money < cost) return alert("Para yetersiz!");
+        await sb.from('profiles').update({ money: myProfile.money - cost, worker_count: (myProfile.worker_count || 1) + 1 }).eq('id', me.id);
+        sync();
+    }
+
+    function tab(id, btn) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-        document.querySelectorAll('.nav-btn').forEach(n => n.classList.remove('active'));
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
         document.getElementById('p-'+id).classList.add('active');
-        b.classList.add('active');
+        btn.classList.add('active');
     }
 
     init();
 </script>
 </body>
 </html>
-
-    
